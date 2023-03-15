@@ -1,4 +1,4 @@
-name: Manual Build
+name: Manual New Api Build
 
 on: workflow_dispatch
 
@@ -19,5 +19,5 @@ jobs:
       - name: upload playit-cli
         uses: actions/upload-artifact@v3
         with:
-          name: playit-cli
-          path: ./target/release/playit-cli
+          name: playit-cli-new-api
+          path: ./target/release/playit-cli-new-api
