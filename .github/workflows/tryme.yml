@@ -1,0 +1,52 @@
+Sure, here's the updated YAML file to build the tag 9.3 and branch called new-api, using the latest build tools, ignoring warnings and forcing completion, and naming the outputted built app playit-beta-9.3:
+
+name: Build beta
+
+on:
+push:
+branches: [ o.9.1 ]
+tags:
+- '9.3'
+workflow_dispatch:
+
+env:
+CARGO_TERM_COLOR: always
+
+jobs:
+release:
+runs-on: ubuntu-latest
+steps:
+- uses: actions/checkout@v2
+- name: Build
+  run: |
+    sudo apt-get update && sudo apt-get install -y libc6-dev-i386 lib32gcc-10-dev gcc-10-aarch64-linux-gnu gcc-aarch64-linux-gnu
+    sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
+    rustup update && rustup toolchain install stable
+    rustup target add x86_64-unknown-linux-gnu
+    cargo build --verbose --release --target x86_64-unknown-linux-gnu --manifest-path=packages/agent/Cargo.toml --bin agent --no-default-features --features "beta" -- -o playit-beta-9.3
+    
+    rustup target add i686-unknown-linux-gnu
+    cargo build --verbose --release --target i686-unknown-linux-gnu --manifest-path=packages/agent/Cargo.toml --bin agent --no-default-features --features "beta" -- -o playit-beta-9.3-linux-32
+    
+    #rustup target add aarch64-unknown-linux-gnu
+    #cargo build --verbose --release --target aarch64-unknown-linux-gnu --manifest-path=packages/agent/Cargo.toml --bin agent --no-default-features --features "beta" -- -o playit-beta-9.3-linux-arm64
+    
+    sudo apt-get install -y mingw-w64
+    rustup target add x86_64-pc-windows-gnu
+    cargo build --verbose --release --target x86_64-pc-windows-gnu --manifest-path=packages/agent/Cargo.toml --bin agent --no-default-features --features "beta" -- -o playit-beta-9.3.exe
+
+- name: Get Release Tag
+  run: |
+    cargo install toml-cli --verbose
+    echo "::set-output name=TAG::v$(toml get packages/agent/Cargo.toml package.version | tr -d \")"
+  id: TAG
+
+- name: Release
+  uses: svenstaro/upload-release-action@v2
+  with:
+    repo_token: ${{ secrets.GITHUB_TOKEN }}
+    file: "playit-beta-9.3*"
+    tag: ${{ steps.TAG.outputs.TAG }}
+    overwrite: true
+    file_glob: true
+  
